@@ -5,6 +5,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class LongMapImplTest {
 
@@ -69,7 +71,7 @@ public class LongMapImplTest {
     }
 
     @Test
-    public void testContainsKey() {
+    public void testContainsKeys() {
         Assert.assertTrue(longMap.containsKey(12L));
         Assert.assertTrue(longMap.containsKey(16L));
         Assert.assertTrue(longMap.containsKey(18L));
@@ -77,7 +79,7 @@ public class LongMapImplTest {
     }
 
     @Test
-    public void testContainsValue() {
+    public void testContainsValues() {
         Assert.assertTrue(longMap.containsValue("Json Statham"));
         Assert.assertTrue(longMap.containsValue("Angelina Javaly"));
         Assert.assertTrue(longMap.containsValue("Elon MusQL"));
@@ -101,11 +103,13 @@ public class LongMapImplTest {
 
     @Test
     public void testGetAllValues() {
-        String[] expected = new String[]{"Angelina Javaly", "Elon MusQL", "Json Statham", "Linus Codevalds"};
+        List<String> expected = Arrays.asList("Angelina Javaly", "Elon MusQL", "Json Statham", "Linus Codevalds");
 
-        String[] actual = longMap.values();
+        List<String> actual = longMap.values().stream()
+                .sorted()
+                .collect(Collectors.toList());
 
-        Assert.assertArrayEquals(expected, actual);
+        Assert.assertEquals(expected, actual);
     }
 
     @Test

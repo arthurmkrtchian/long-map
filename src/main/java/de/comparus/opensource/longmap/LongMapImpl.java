@@ -1,24 +1,24 @@
 package de.comparus.opensource.longmap;
 
-import java.lang.reflect.Array;
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
-
 
 public class LongMapImpl<V> implements LongMap<V> {
     private static final int DEFAULT_CAPACITY = 8;
     private static final double LOAD_FACTOR = 0.8;
     private int size;
-    private int capacity;
-    private Entry<V>[] table;
-
+    private List<Entry<V>> table;
 
     public LongMapImpl(int capacity) {
         if (capacity <= 0) {
             capacity = DEFAULT_CAPACITY;
         }
-        this.capacity = capacity;
-        table = new Entry[capacity];
+        table = new ArrayList<>(capacity);
+        for (int i = 0; i < capacity; i++) {
+            table.add(null);
+        }
     }
 
     public LongMapImpl() {
@@ -26,12 +26,11 @@ public class LongMapImpl<V> implements LongMap<V> {
     }
 
     public V put(long key, V value) {
-        if (size > (table.length - 1) * LOAD_FACTOR) {
+        if (size > (table.size() - 1) * LOAD_FACTOR) {
             resize();
         }
-
         int position = hash(key);
-        Entry<V> entry = table[position];
+        Entry<V> entry = table.get(position);
         for (; entry != null; entry = entry.next) {
             if (entry.key == key) {
                 entry.value = value;
@@ -40,16 +39,15 @@ public class LongMapImpl<V> implements LongMap<V> {
         }
 
         Entry<V> newEntry = new Entry<>(key, value);
-        newEntry.next = table[position];
-        table[position] = newEntry;
+        newEntry.next = table.get(position);
+        table.set(position, newEntry);
         size++;
-
-        return table[position].value;
+        return table.get(position).value;
     }
 
     public V get(long key) {
         int position = hash(key);
-        Entry<V> entry = table[position];
+        Entry<V> entry = table.get(position);
         for (; entry != null; entry = entry.next) {
             if (entry.key == key) {
                 return entry.value;
@@ -60,12 +58,12 @@ public class LongMapImpl<V> implements LongMap<V> {
 
     public V remove(long key) {
         int index = hash(key);
-        Entry<V> entry = table[index];
+        Entry<V> entry = table.get(index);
         Entry<V> prev = null;
         for (; entry != null; entry = entry.next) {
             if (entry.key == key) {
                 if (prev == null) {
-                    table[index] = entry.next;
+                    table.set(index, entry.next);
                 } else {
                     prev.next = entry.next;
                 }
@@ -83,7 +81,7 @@ public class LongMapImpl<V> implements LongMap<V> {
 
     public boolean containsKey(long key) {
         int index = hash(key);
-        Entry<V> entry = table[index];
+        Entry<V> entry = table.get(index);
         for (; entry != null; entry = entry.next) {
             if (entry.key == key) {
                 return true;
@@ -108,40 +106,20 @@ public class LongMapImpl<V> implements LongMap<V> {
         int newPosition = 0;
         for (Entry<V> entry : table) {
             for (; entry != null; entry = entry.next) {
-                keys[newPosition] = entry.key;
-                newPosition++;
+                keys[newPosition++] = entry.key;
             }
         }
         return keys;
     }
 
-    public V[] values() {
-        Class<?> type = getType();
-
-        if (type == null) {
-            return (V[]) new Object[size];
-        } else {
-            V[] values = (V[]) Array.newInstance(type, size);
-            int newPosition = 0;
-            for (Entry<V> entry : table) {
-                for (; entry != null; entry = entry.next) {
-                    values[newPosition] = entry.value;
-                    newPosition++;
-                }
-            }
-            return values;
-        }
-    }
-
-    private Class<?> getType() {
+    public List<V> values() {
+        List<V> valueList = new ArrayList<>();
         for (Entry<V> entry : table) {
             for (; entry != null; entry = entry.next) {
-                if (entry.value != null) {
-                    return entry.value.getClass();
-                }
+                valueList.add(entry.value);
             }
         }
-        return null;
+        return valueList;
     }
 
     public long size() {
@@ -149,16 +127,17 @@ public class LongMapImpl<V> implements LongMap<V> {
     }
 
     public void clear() {
-        if (table != null) {
-            size = 0;
-            Arrays.fill(table, null);
-        }
+        Collections.fill(table, null);
+        size = 0;
     }
 
     private void resize() {
-        this.capacity = table.length * 2;
-        Entry<V>[] oldTable = table;
-        table = new Entry[capacity];
+        int newCapacity = table.size() * 2;
+        List<Entry<V>> oldTable = table;
+        table = new ArrayList<>(newCapacity);
+        for (int i = 0; i < newCapacity; i++) {
+            table.add(null);
+        }
         size = 0;
         for (Entry<V> entry : oldTable) {
             for (; entry != null; entry = entry.next) {
@@ -168,7 +147,7 @@ public class LongMapImpl<V> implements LongMap<V> {
     }
 
     private int hash(long key) {
-        return Long.hashCode(key) % capacity;
+        return Long.hashCode(key) % table.size();
     }
 
     private static class Entry<V> {
